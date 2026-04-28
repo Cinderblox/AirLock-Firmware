@@ -33,7 +33,7 @@ esp-web-install-button button{background:#E8FF47!important;color:#0a0a0a!importa
 <div class="sub">Firmware Installer</div>
 
 <div class="flash-wrap">
-  <esp-web-install-button manifest="https://github.com/__RELEASE_REPO__/releases/latest/download/manifest.json">
+  <esp-web-install-button manifest="manifest.json">
     <button slot="activate">Install AirLock</button>
     <span slot="unsupported" class="unsupported">Browser not supported. Use desktop Chrome or Edge.</span>
     <span slot="not-allowed" class="unsupported">WebSerial requires HTTPS. Try opening this page over https.</span>
@@ -49,7 +49,7 @@ esp-web-install-button button{background:#E8FF47!important;color:#0a0a0a!importa
 
 <div class="card">
   <h2>What gets flashed</h2>
-  <p>A single merged image containing the bootloader, partition table, and firmware app. Your existing settings (modes, calibration, Wi-Fi) are <b>erased</b>; the device boots into first-time setup afterwards.</p>
+  <p>The firmware is updated while your existing settings (modes, calibration, Wi-Fi) are <b>preserved</b>. On first install you'll be asked whether to erase settings — choose <b>no</b> to keep them, or <b>yes</b> for a clean start.</p>
 </div>
 
 <div class="foot">If the install button doesn't appear, your browser doesn't support WebSerial. Use Chrome or Edge on a laptop / desktop. Phones and tablets can't flash directly.<br><br><a href="NOTICE.md" style="color:#888;text-decoration:none;">Open-source notices &amp; LGPL relinking rights &rarr;</a></div>
