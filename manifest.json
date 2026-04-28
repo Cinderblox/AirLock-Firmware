@@ -1,0 +1,19 @@
+{
+  "name": "AirLock",
+  "version": "1.8",
+  "new_install_prompt_erase": true,
+  "builds": [
+    {
+      "chipFamily": "ESP32-C6",
+      "parts": [
+        { "path": "airlock-c6-merged.bin", "offset": 0 }
+      ]
+    },
+    {
+      "chipFamily": "ESP32-C3",
+      "parts": [
+        { "path": "airlock-c3-merged.bin", "offset": 0 }
+      ]
+    }
+  ]
+}

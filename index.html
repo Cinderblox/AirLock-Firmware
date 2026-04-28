@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Flash AirLock</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#0a0a0a;color:#efefef;min-height:100vh;padding:32px 24px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;}
+.logo{width:88px;height:88px;margin-bottom:18px;}
+h1{font-size:30px;font-weight:700;letter-spacing:2px;margin-bottom:6px;}
+.sub{font-size:11px;color:#888;letter-spacing:3px;text-transform:uppercase;margin-bottom:30px;}
+.card{background:#141414;border:1.5px solid #2c2c2c;border-radius:12px;padding:22px;max-width:420px;width:100%;text-align:left;margin-bottom:18px;}
+.card h2{font-size:13px;color:#E8FF47;letter-spacing:2px;text-transform:uppercase;margin-bottom:12px;}
+.card p{font-size:14px;line-height:1.55;color:#aaa;margin-bottom:8px;}
+.card p:last-child{margin-bottom:0;}
+.card b{color:#efefef;}
+.flash-wrap{margin:8px 0 24px;}
+esp-web-install-button{--esp-tools-button-color:#0a0a0a;--esp-tools-button-text-color:#0a0a0a;--esp-tools-button-border-radius:10px;}
+esp-web-install-button button{background:#E8FF47!important;color:#0a0a0a!important;border:none!important;border-radius:10px!important;padding:14px 28px!important;font-size:14px!important;font-weight:700!important;letter-spacing:2px!important;text-transform:uppercase!important;cursor:pointer;}
+.foot{font-size:12px;color:#666;line-height:1.5;max-width:420px;}
+.foot b{color:#aaa;}
+.unsupported{display:none;color:#ff8b3d;font-size:13px;margin-top:8px;}
+</style>
+</head>
+<body>
+<svg class="logo" viewBox="0 0 100 100" aria-hidden="true">
+  <circle cx="50" cy="50" r="42" stroke="#E8FF47" stroke-width="4" fill="none"/>
+  <circle cx="50" cy="50" r="28" stroke="#E8FF47" stroke-width="4" fill="none"/>
+  <circle cx="50" cy="50" r="14" stroke="#E8FF47" stroke-width="4" fill="none"/>
+</svg>
+<h1>AirLock</h1>
+<div class="sub">Firmware Installer</div>
+
+<div class="flash-wrap">
+  <esp-web-install-button manifest="https://github.com/__RELEASE_REPO__/releases/latest/download/manifest.json">
+    <button slot="activate">Install AirLock</button>
+    <span slot="unsupported" class="unsupported">Browser not supported. Use desktop Chrome or Edge.</span>
+    <span slot="not-allowed" class="unsupported">WebSerial requires HTTPS. Try opening this page over https.</span>
+  </esp-web-install-button>
+</div>
+
+<div class="card">
+  <h2>Before you flash</h2>
+  <p><b>Browser:</b> desktop Chrome or Edge (Safari and Firefox don't support WebSerial yet).</p>
+  <p><b>Cable:</b> a data USB-C cable, not charge-only.</p>
+  <p><b>Device:</b> plug the AirLock straight into your computer. The board enters bootloader mode automatically when needed.</p>
+</div>
+
+<div class="card">
+  <h2>What gets flashed</h2>
+  <p>A single merged image containing the bootloader, partition table, and firmware app. Your existing settings (modes, calibration, Wi-Fi) are <b>erased</b>; the device boots into first-time setup afterwards.</p>
+</div>
+
+<div class="foot">If the install button doesn't appear, your browser doesn't support WebSerial. Use Chrome or Edge on a laptop / desktop. Phones and tablets can't flash directly.<br><br><a href="NOTICE.md" style="color:#888;text-decoration:none;">Open-source notices &amp; LGPL relinking rights &rarr;</a></div>
+
+<script type="module" src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"></script>
+</body>
+</html>
