@@ -93,6 +93,12 @@ const checkBtn = document.getElementById('checkBtn');
 
 let latestVersion = null;
 
+function semverCmp(a,b){
+  const pa=(a||'').split('.').map(Number),pb=(b||'').split('.').map(Number);
+  for(let i=0;i<3;i++){const d=(pa[i]||0)-(pb[i]||0);if(d)return d;}
+  return 0;
+}
+
 fetch('manifest.json').then(r=>r.json()).then(m=>{
   latestVersion = m.version;
   const d = m.date ? (' — ' + m.date) : '';
@@ -124,7 +130,8 @@ checkBtn.addEventListener('click', async () => {
     deviceVerEl.textContent = 'v' + info.version;
     deviceVerEl.classList.remove('muted');
 
-    if (latestVersion && info.version === latestVersion) {
+    const cmp = semverCmp(info.version, latestVersion);
+    if (latestVersion && cmp >= 0) {
       statusEl.textContent = `Up to date — running ${info.firmware} v${info.version}.`;
       statusEl.className = 'status up-to-date';
     } else if (latestVersion) {
