@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Flash AirLock</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#0a0a0a;color:#efefef;min-height:100vh;padding:32px 24px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;}
+.logo{width:88px;height:88px;margin-bottom:18px;}
+h1{font-size:30px;font-weight:700;letter-spacing:2px;margin-bottom:6px;}
+.sub{font-size:11px;color:#888;letter-spacing:3px;text-transform:uppercase;margin-bottom:6px;}
+.ver{font-size:13px;color:#E8FF47;letter-spacing:1px;margin-bottom:24px;}
+.card{background:#141414;border:1.5px solid #2c2c2c;border-radius:12px;padding:22px;max-width:420px;width:100%;text-align:left;margin-bottom:18px;}
+.card h2{font-size:13px;color:#E8FF47;letter-spacing:2px;text-transform:uppercase;margin-bottom:12px;}
+.card p{font-size:14px;line-height:1.55;color:#aaa;margin-bottom:8px;}
+.card p:last-child{margin-bottom:0;}
+.card b{color:#efefef;}
+.detect-wrap{margin:8px 0 18px;width:100%;max-width:420px;display:flex;flex-direction:column;align-items:center;gap:14px;}
+.detect-btn{background:#1c1c1c;color:#efefef;border:1.5px solid #2c2c2c;border-radius:10px;padding:12px 24px;font-size:13px;font-weight:600;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-family:inherit;}
+.detect-btn:hover:not(:disabled){border-color:#E8FF47;color:#E8FF47;}
+.detect-btn:disabled{opacity:.6;cursor:not-allowed;}
+.detect-status{font-size:13px;line-height:1.55;color:#aaa;text-align:center;min-height:1.5em;}
+.detect-status .label{color:#efefef;font-weight:600;}
+.detect-status .ok{color:#7fda7f;}
+.detect-status .warn{color:#ff8b3d;}
+.detect-status .err{color:#ff5b5b;}
+.flash-wrap{margin:8px 0 24px;display:none;}
+.flash-wrap.visible{display:block;}
+esp-web-install-button{--esp-tools-button-color:#0a0a0a;--esp-tools-button-text-color:#0a0a0a;--esp-tools-button-border-radius:10px;}
+esp-web-install-button button{background:#E8FF47!important;color:#0a0a0a!important;border:none!important;border-radius:10px!important;padding:14px 28px!important;font-size:14px!important;font-weight:700!important;letter-spacing:2px!important;text-transform:uppercase!important;cursor:pointer;}
+.foot{font-size:12px;color:#666;line-height:1.5;max-width:420px;}
+.foot b{color:#aaa;}
+.unsupported{display:none;color:#ff8b3d;font-size:13px;margin-top:8px;}
+</style>
+</head>
+<body>
+<svg class="logo" viewBox="0 0 100 100" aria-hidden="true">
+  <circle cx="50" cy="50" r="42" stroke="#E8FF47" stroke-width="4" fill="none"/>
+  <circle cx="50" cy="50" r="28" stroke="#E8FF47" stroke-width="4" fill="none"/>
+  <circle cx="50" cy="50" r="14" stroke="#E8FF47" stroke-width="4" fill="none"/>
+</svg>
+<h1>AirLock</h1>
+<div class="sub">Firmware Installer</div>
+<div class="ver" id="ver">loading...</div>
+
+<div class="detect-wrap">
+  <button id="detectBtn" class="detect-btn" type="button">Detect device</button>
+  <div id="detectStatus" class="detect-status">Plug in your AirLock and click Detect.</div>
+</div>
+
+<div class="flash-wrap" id="flashWrap">
+  <esp-web-install-button id="installBtn">
+    <button slot="activate">Install AirLock</button>
+    <span slot="unsupported" class="unsupported">Browser not supported. Use desktop Chrome or Edge.</span>
+    <span slot="not-allowed" class="unsupported">WebSerial requires HTTPS. Try opening this page over https.</span>
+  </esp-web-install-button>
+</div>
+
+<div class="card">
+  <h2>Before you flash</h2>
+  <p><b>Browser:</b> desktop Chrome or Edge (Safari and Firefox don't support WebSerial yet).</p>
+  <p><b>Cable:</b> a data USB-C cable, not charge-only.</p>
+  <p><b>Device:</b> plug the AirLock straight into your computer. The board enters bootloader mode automatically when needed.</p>
+</div>
+
+<div class="card">
+  <h2>What gets flashed</h2>
+  <p>The firmware is updated while your existing settings (modes, calibration, Wi-Fi) are <b>preserved</b>. The flasher reads your hardware revision over USB and picks the matching binary &mdash; Pro and Light units always receive the firmware they were built for.</p>
+</div>
+
+<div class="foot">If the install button doesn't appear, your browser doesn't support WebSerial. Use Chrome or Edge on a laptop / desktop. Phones and tablets can't flash directly.<br><br><a href="NOTICE.md" style="color:#888;text-decoration:none;">Open-source notices &amp; LGPL relinking rights &rarr;</a></div>
+
+<script type="module" src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"></script>
+<script>
+// cinderblox/AirLock-Firmware is substituted by .github/workflows/release-firmware.yml
+// when the page is synced to the public Pages site. Locally the placeholder
+// is left intact and the page won't fetch correctly — that's expected.
+const RELEASE_REPO = 'cinderblox/AirLock-Firmware';
+const RELEASE_BASE = `https://github.com/${RELEASE_REPO}/releases/latest/download`;
+const ROOT_MANIFEST_URL = `${RELEASE_BASE}/manifest.json`;
+
+const verEl     = document.getElementById('ver');
+const detectBtn = document.getElementById('detectBtn');
+const statusEl  = document.getElementById('detectStatus');
+const flashWrap = document.getElementById('flashWrap');
+const installBtn= document.getElementById('installBtn');
+
+let rootManifest = null;
+
+// ---- Top-of-page version display ----------------------------------------
+
+fetch(ROOT_MANIFEST_URL).then(r => r.json()).then(m => {
+  rootManifest = m;
+  const d = m.date ? (' — ' + m.date) : '';
+  verEl.textContent = 'v' + m.version + d;
+}).catch(() => { verEl.textContent = ''; });
+
+// ---- Improv Serial helpers ----------------------------------------------
+// Wire format:
+//   'I' 'M' 'P' 'R' 'O' 'V'  0x01      header (6 chars + version byte)
+//   type    (1 byte)                   0x03 RPC_COMMAND, 0x04 RPC_RESPONSE
+//   length  (1 byte)                   body length
+//   body    (length bytes)
+//   checksum (1 byte)                  sum of all preceding bytes mod 256
+
+const IMPROV_HEADER = [0x49, 0x4D, 0x50, 0x52, 0x4F, 0x56, 0x01];
+const TYPE_RPC_COMMAND  = 0x03;
+const TYPE_RPC_RESPONSE = 0x04;
+const RPC_GET_DEVICE_INFO = 0x03;
+
+function buildImprovPacket(type, body) {
+  const arr = [...IMPROV_HEADER, type, body.length, ...body];
+  const checksum = arr.reduce((s, b) => (s + b) & 0xff, 0);
+  return new Uint8Array([...arr, checksum]);
+}
+
+// Parse one Improv packet starting at buf[start]. Returns the parsed packet
+// (with type + body) plus the byte index just past the packet, or null if
+// not enough bytes yet. The header at buf[start..start+7] is trusted.
+function tryParsePacket(buf, start) {
+  if (buf.length < start + 10) return null;
+  const length = buf[start + 8];
+  const end = start + 9 + length + 1; // body + checksum
+  if (buf.length < end) return null;
+  const sum = buf.slice(start, start + 9 + length).reduce((s, b) => (s + b) & 0xff, 0);
+  if (sum !== buf[start + 9 + length]) return { type: 'bad-checksum', next: start + 1 };
+  return {
+    type: buf[start + 7],
+    body: buf.slice(start + 9, start + 9 + length),
+    next: end,
+  };
+}
+
+function findHeader(buf, from) {
+  for (let i = from; i + IMPROV_HEADER.length <= buf.length; i++) {
+    let ok = true;
+    for (let j = 0; j < IMPROV_HEADER.length; j++) {
+      if (buf[i + j] !== IMPROV_HEADER[j]) { ok = false; break; }
+    }
+    if (ok) return i;
+  }
+  return -1;
+}
+
+async function readUntilResponse(reader, wantType, timeoutMs) {
+  const buf = [];
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const remaining = deadline - Date.now();
+    let r;
+    try {
+      r = await Promise.race([
+        reader.read(),
+        new Promise(res => setTimeout(() => res({ value: null, done: false, _t: true }), remaining)),
+      ]);
+    } catch (e) { return null; }
+    if (r._t) return null;        // timed out waiting on read
+    if (r.done) return null;
+    if (r.value && r.value.length) {
+      for (const b of r.value) buf.push(b);
+      let i = 0;
+      while (i < buf.length) {
+        const h = findHeader(buf, i);
+        if (h < 0) { buf.splice(0, buf.length); break; }
+        const pkt = tryParsePacket(buf, h);
+        if (!pkt) { i = h; break; }                    // wait for more bytes
+        if (pkt.type === wantType) return pkt;
+        if (pkt.type === 'bad-checksum') { i = pkt.next; continue; }
+        i = pkt.next;                                   // skip non-matching packet
+      }
+      buf.splice(0, i);
+    }
+  }
+  return null;
+}
+
+function parseDeviceInfo(body) {
+  // body: cmd (1) | innerLen (1) | str1 .. str5 (length-prefixed)
+  if (body.length < 2 || body[0] !== RPC_GET_DEVICE_INFO) return null;
+  const inner = body.slice(2);
+  const out = [];
+  let i = 0;
+  while (i < inner.length && out.length < 5) {
+    const len = inner[i++];
+    if (i + len > inner.length) return null;
+    out.push(new TextDecoder().decode(new Uint8Array(inner.slice(i, i + len))));
+    i += len;
+  }
+  if (out.length < 5) return null;
+  return {
+    name:        out[0],
+    version:     out[1],
+    chipFamily:  out[2],
+    deviceName:  out[3],
+    hwRev:       parseInt(out[4], 10),
+  };
+}
+
+// ---- Detect flow --------------------------------------------------------
+
+function setStatus(html, kind) {
+  statusEl.innerHTML = html;
+  statusEl.className = 'detect-status' + (kind ? ' ' + kind : '');
+}
+
+async function detectDevice() {
+  if (!('serial' in navigator)) {
+    setStatus('<span class="warn">WebSerial not supported. Use desktop Chrome or Edge.</span>', 'warn');
+    return;
+  }
+  if (!rootManifest) {
+    setStatus('<span class="warn">Manifest still loading &mdash; try again in a moment.</span>', 'warn');
+    return;
+  }
+
+  detectBtn.disabled = true;
+  flashWrap.classList.remove('visible');
+  setStatus('Requesting USB port&hellip;');
+
+  let port;
+  try {
+    port = await navigator.serial.requestPort();
+    await port.open({ baudRate: 115200 });
+  } catch (e) {
+    setStatus('<span class="warn">No port selected.</span>', 'warn');
+    detectBtn.disabled = false;
+    return;
+  }
+
+  const writer = port.writable.getWriter();
+  const reader = port.readable.getReader();
+  let info = null;
+  try {
+    setStatus('Reading device&hellip;');
+    await writer.write(buildImprovPacket(TYPE_RPC_COMMAND, [RPC_GET_DEVICE_INFO, 0x00]));
+    const pkt = await readUntilResponse(reader, TYPE_RPC_RESPONSE, 1500);
+    if (pkt) info = parseDeviceInfo(pkt.body);
+  } catch (e) { /* fall through to !info handling */ }
+  finally {
+    // releaseLock() throws if there's a pending read() — cancel first.
+    try { await reader.cancel(); } catch (e) {}
+    try { reader.releaseLock(); } catch (e) {}
+    try { writer.releaseLock(); } catch (e) {}
+    try { await port.close(); } catch (e) {}
+  }
+
+  if (!info) {
+    setStatus('<span class="err">Couldn\'t read device. Check the cable and try again.</span>', 'err');
+    detectBtn.disabled = false;
+    return;
+  }
+  if (info.name !== 'AirLock') {
+    setStatus(`<span class="err">Unknown device on this port (${info.name || '?'}).</span>`, 'err');
+    detectBtn.disabled = false;
+    return;
+  }
+
+  const revs = rootManifest.revs || {};
+  const variant = revs[String(info.hwRev)];
+
+  if (info.hwRev === 0) {
+    setStatus('<span class="err">This device hasn\'t been provisioned. Please contact support.</span>', 'err');
+    detectBtn.disabled = false;
+    return;
+  }
+  if (!variant) {
+    setStatus(`<span class="err">Unrecognised hardware revision (${info.hwRev}). This flasher may be out of date &mdash; try refreshing.</span>`, 'err');
+    detectBtn.disabled = false;
+    return;
+  }
+  if (variant.chipFamily !== info.chipFamily) {
+    setStatus(`<span class="err">Hardware/rev mismatch (${info.chipFamily} vs ${variant.chipFamily}). Contact support.</span>`, 'err');
+    detectBtn.disabled = false;
+    return;
+  }
+
+  const upToDate = info.version === rootManifest.version;
+  const verLine = upToDate
+    ? `<span class="ok">Firmware: v${info.version} &mdash; up to date</span>`
+    : `<span class="warn">Firmware: v${info.version} &mdash; update available (v${rootManifest.version})</span>`;
+  setStatus(`<span class="label">${variant.label}</span> (rev ${info.hwRev})<br>${verLine}`, 'ok');
+
+  installBtn.setAttribute('manifest', `${RELEASE_BASE}/manifest-rev${info.hwRev}.json`);
+  flashWrap.classList.add('visible');
+  detectBtn.disabled = false;
+  detectBtn.textContent = 'Re-detect';
+}
+
+detectBtn.addEventListener('click', detectDevice);
+</script>
+</body>
+</html>
